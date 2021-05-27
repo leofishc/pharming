@@ -24,8 +24,17 @@ func PendingTokens(fnSignature string, poolId int64, contractAddr string, userAd
 	return *pendingTokenCount
 }
 
-func Harvest(poolId int64, contractAddr string) string {
+func Harvest(poolId int64, contractAddr string, referrer string, isRefer bool) string {
+	gasLimit := 200000
 	harvestFnSignature := []byte("deposit(uint256,uint256)")
+	if isRefer {
+		harvestFnSignature = []byte("deposit(uint256,uint256,address)")
+		if referrer == EmptyAddr {
+			referrer = EthMinValue
+		} else {
+			referrer = TokenPadding + referrer[2:]
+		}
+	}
 	methodHash := crypto.Keccak256Hash(harvestFnSignature).Bytes()[:4]
 
 	poolDataBytes := make([]byte, 8)
@@ -33,8 +42,12 @@ func Harvest(poolId int64, contractAddr string) string {
 	poolDataHex := hexutil.Encode(poolDataBytes)
 
 	dataString := hexutil.Encode(methodHash) + IntPadding + poolDataHex[2:] + EthMinValue
+	if isRefer {
+		dataString += referrer
+		gasLimit = 300000
+	}
 	dataBytes := common.Hex2Bytes(dataString[2:])
-	return signAndSendTx(*big.NewInt(0), contractAddr, dataBytes, 200000)
+	return signAndSendTx(*big.NewInt(0), contractAddr, dataBytes, int64(gasLimit))
 }
 
 func Approve(tokenAddr string) string {

@@ -10,9 +10,10 @@ import (
 func SwapApprovedTokenToBUSD(amountIn big.Int, minAmountOut big.Int, userAddr string, epochTime big.Int, token string) string {
 	timeout := hexutil.EncodeBig(new(big.Int).Add(&epochTime, new(big.Int).SetInt64(20000)))
 
-	swapFnSignature := []byte("swapExactTokensForTokens(uint256,uint256,address[],address,uint256)")
+	swapFnSignature := []byte("swapExactTokensForTokensSupportingFeeOnTransferTokens(uint256,uint256,address[],address,uint256)")
 	fnHash := crypto.Keccak256Hash(swapFnSignature).Bytes()[:4]
 
+	amountIn.Sub(&amountIn, big.NewInt(100))
 	amountInDataBytes := make([]byte, 32)
 	amountInDataBytes = amountIn.Bytes()
 	amountInParam := hexutil.Encode(amountInDataBytes)
@@ -37,10 +38,10 @@ func SwapApprovedTokenToBUSD(amountIn big.Int, minAmountOut big.Int, userAddr st
 	}
 
 	dataString := hexutil.Encode(fnHash) + amountInParam + minAmountOutParam +
-		ParamWrap2 + TokenPadding + userAddr[2:] + timeoutBlockParam + ParamWrapArr + TokenPadding + token + WBNBTokenPadded + BUSDTokenPadded
+		ParamWrap2 + TokenPadding + userAddr[2:] + timeoutBlockParam + ParamWrapArr + TokenPadding + token[2:] + /*WBNBTokenPadded + */ BUSDTokenPadded
 
 	data := common.Hex2Bytes(dataString[2:])
 
-	tx := signAndSendTx(*big.NewInt(0), PancakeRouterAddr, data, 350000)
+	tx := signAndSendTx(*big.NewInt(0), PancakeRouterAddr, data, 700000)
 	return tx
 }
